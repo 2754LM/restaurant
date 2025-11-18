@@ -1,40 +1,91 @@
-// 简化的数据加载器 - 使用Base64编码
+// 修改后的数据加载器 - 使用AES加密从CSV文件读取数据
 class DataLoader {
   constructor() {
     this.allData = null;
     this.currentPage = 1;
     this.pageSize = 50;
     this.isLoading = false;
+    this.encryptionKey = "restaurant_data_key_2024"; // 加密密钥
   }
 
-  // 获取Base64编码的数据
-  static getEncryptedData() {
-    // 原始CSV数据（包含特殊符号评分）
-    const csvData = `order_id,date,time,item_name,item_type,transaction_amount,order_type,customer_id,taste_rating,delivery_speed_rating,environment_rating,service_rating
-1,03-13-2022,21:04,干煸豆角,主食,35.0,外卖,CUST_19833,⭐⭐⭐⭐⭐,⭐⭐⭐⭐⭐,,
-2,02/20/2023,16:40,鱼香肉丝,主食,38.0,外卖,CUST_13042,⭐⭐⭐⭐⭐,⭐⭐⭐⭐⭐,,
-3,05/18/2021,09:56,鱼头豆腐汤,汤类,26.0,堂食,CUST_08341,⭐⭐⭐⭐⭐,,⭐⭐⭐⭐⭐,⭐⭐⭐⭐⭐
-4,08/25/2023,19:36,饺子,小吃,12.0,外卖,CUST_19236,⭐⭐⭐⭐⭐,⭐⭐⭐,,
-5,09/24/2023,23:47,饺子,小吃,12.0,堂食,CUST_04798,⭐⭐⭐⭐⭐,,⭐⭐⭐⭐,⭐⭐⭐⭐⭐
-6,10/15/2023,12:30,宫保鸡丁,主食,42.0,外卖,CUST_15678,⭐⭐⭐⭐,⭐⭐⭐⭐,,
-7,11/20/2023,18:15,麻婆豆腐,主食,28.0,堂食,CUST_09345,⭐⭐⭐⭐⭐,,⭐⭐⭐⭐⭐,⭐⭐⭐⭐
-8,12/05/2023,20:45,酸辣汤,汤类,18.0,外卖,CUST_16789,⭐⭐⭐⭐,⭐⭐⭐,,
-9,01/10/2024,14:20,回锅肉,主食,45.0,外卖,CUST_23456,⭐⭐⭐⭐⭐,⭐⭐⭐⭐,,
-10,02/15/2024,19:30,水煮鱼,主食,58.0,堂食,CUST_34567,⭐⭐⭐⭐,,⭐⭐⭐⭐⭐,⭐⭐⭐⭐⭐`;
+  // 简单的AES加密函数
+  static async encryptData(data, key) {
+    try {
+      // 使用CryptoJS进行AES加密
+      if (typeof CryptoJS === "undefined") {
+        console.warn("CryptoJS未加载，使用Base64编码替代");
+        return btoa(unescape(encodeURIComponent(data)));
+      }
 
-    // 使用Base64编码
-    return btoa(unescape(encodeURIComponent(csvData)));
+      const encrypted = CryptoJS.AES.encrypt(data, key).toString();
+      return encrypted;
+    } catch (error) {
+      console.warn("AES加密失败，使用Base64编码:", error);
+      return btoa(unescape(encodeURIComponent(data)));
+    }
+  }
+
+  // 解密函数
+  static async decryptData(encryptedData, key) {
+    try {
+      if (typeof CryptoJS === "undefined") {
+        console.warn("CryptoJS未加载，使用Base64解码");
+        return decodeURIComponent(escape(atob(encryptedData)));
+      }
+
+      const decrypted = CryptoJS.AES.decrypt(encryptedData, key).toString(
+        CryptoJS.enc.Utf8
+      );
+      return decrypted;
+    } catch (error) {
+      console.warn("AES解密失败，使用Base64解码:", error);
+      return decodeURIComponent(escape(atob(encryptedData)));
+    }
+  }
+
+  // 从CSV文件获取并加密数据
+  static async getEncryptedDataFromCSV() {
+    try {
+      // 模拟从CSV文件读取数据
+      const response = await fetch("data/orders.csv");
+      if (!response.ok) {
+        throw new Error("无法加载CSV文件");
+      }
+
+      const csvData = await response.text();
+
+      // 使用AES加密数据
+      const encryptedData = await this.encryptData(
+        csvData,
+        "restaurant_data_key_2024"
+      );
+      return encryptedData;
+    } catch (error) {
+      console.error("从CSV文件加载数据失败:", error);
+      // 备用数据
+      const backupData = `order_id,date,time,item_name,item_type,transaction_amount,order_type,customer_id,taste_rating,delivery_speed_rating,environment_rating,service_rating
+1,03-13-2022,21:04,干煸豆角,主食,35.0,外卖,CUST_19833,5,5,,
+2,02/20/2023,16:40,鱼香肉丝,主食,38.0,外卖,CUST_13042,5,5,,
+3,05/18/2021,09:56,鱼头豆腐汤,汤类,26.0,堂食,CUST_08341,5,,5,5
+4,08/25/2023,19:36,饺子,小吃,12.0,外卖,CUST_19236,5,3,,`;
+
+      return await this.encryptData(backupData, "restaurant_data_key_2024");
+    }
   }
 
   // 解码数据
-  static decodeData() {
+  static async decodeData() {
     try {
-      const encryptedData = this.getEncryptedData();
-      // Base64解码
-      const decodedData = decodeURIComponent(escape(atob(encryptedData)));
+      const encryptedData = await this.getEncryptedDataFromCSV();
+
+      // 解密数据
+      const decryptedData = await this.decryptData(
+        encryptedData,
+        "restaurant_data_key_2024"
+      );
 
       // 解析CSV
-      const lines = decodedData.split("\n");
+      const lines = decryptedData.split("\n");
       const headers = lines[0].split(",");
 
       const orders = lines
@@ -42,7 +93,7 @@ class DataLoader {
         .map((line) => {
           if (!line.trim()) return null;
 
-          const values = line.split(",");
+          const values = this.parseCSVLine(line);
           const order = {};
 
           headers.forEach((header, index) => {
@@ -53,8 +104,11 @@ class DataLoader {
               value = value ? parseFloat(value) : null;
             } else if (header === "order_id") {
               value = parseInt(value);
+            } else if (header.includes("rating")) {
+              // 评分字段：空字符串保持为空，数字转换为数字
+              value =
+                value === "" ? null : isNaN(value) ? value : parseInt(value);
             }
-            // 评分字段保持字符串形式（包含特殊符号）
             order[header] = value;
           });
 
@@ -67,6 +121,29 @@ class DataLoader {
       console.error("数据解码失败:", error);
       return [];
     }
+  }
+
+  // 解析CSV行，处理逗号在引号内的情况
+  static parseCSVLine(line) {
+    const result = [];
+    let current = "";
+    let inQuotes = false;
+
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+
+      if (char === '"') {
+        inQuotes = !inQuotes;
+      } else if (char === "," && !inQuotes) {
+        result.push(current);
+        current = "";
+      } else {
+        current += char;
+      }
+    }
+
+    result.push(current);
+    return result;
   }
 
   // 生成大数据集
@@ -86,15 +163,24 @@ class DataLoader {
     ];
     const types = ["主食", "小吃", "汤类"];
     const orderTypes = ["外卖", "堂食"];
-    const ratings = ["", "⭐", "⭐⭐", "⭐⭐⭐", "⭐⭐⭐⭐", "⭐⭐⭐⭐⭐"];
 
     for (let i = dataset.length + 1; i <= totalCount; i++) {
       const randomItem = items[Math.floor(Math.random() * items.length)];
       const randomType = types[Math.floor(Math.random() * types.length)];
       const randomOrderType =
         orderTypes[Math.floor(Math.random() * orderTypes.length)];
-      const tasteRating = ratings[Math.floor(Math.random() * ratings.length)];
-      const serviceRating = ratings[Math.floor(Math.random() * ratings.length)];
+
+      // 根据订单类型设置评分
+      const tasteRating = Math.floor(Math.random() * 5) + 1;
+      let deliveryRating = null;
+      let environmentRating = null;
+      let serviceRating = Math.floor(Math.random() * 5) + 1;
+
+      if (randomOrderType === "外卖") {
+        deliveryRating = Math.floor(Math.random() * 5) + 1;
+      } else {
+        environmentRating = Math.floor(Math.random() * 5) + 1;
+      }
 
       dataset.push({
         order_id: i,
@@ -108,14 +194,8 @@ class DataLoader {
           .toString()
           .padStart(5, "0")}`,
         taste_rating: tasteRating,
-        delivery_speed_rating:
-          randomOrderType === "外卖"
-            ? ratings[Math.floor(Math.random() * ratings.length)]
-            : "",
-        environment_rating:
-          randomOrderType === "堂食"
-            ? ratings[Math.floor(Math.random() * ratings.length)]
-            : "",
+        delivery_speed_rating: deliveryRating,
+        environment_rating: environmentRating,
         service_rating: serviceRating,
       });
     }
@@ -129,10 +209,20 @@ class DataLoader {
     const date = new Date(
       start.getTime() + Math.random() * (end.getTime() - start.getTime())
     );
-    return `${(date.getMonth() + 1).toString().padStart(2, "0")}/${date
-      .getDate()
-      .toString()
-      .padStart(2, "0")}/${date.getFullYear()}`;
+    const formats = ["MM-DD-YYYY", "MM/DD/YYYY"];
+    const format = formats[Math.floor(Math.random() * formats.length)];
+
+    if (format === "MM-DD-YYYY") {
+      return `${(date.getMonth() + 1).toString().padStart(2, "0")}-${date
+        .getDate()
+        .toString()
+        .padStart(2, "0")}-${date.getFullYear()}`;
+    } else {
+      return `${(date.getMonth() + 1).toString().padStart(2, "0")}/${date
+        .getDate()
+        .toString()
+        .padStart(2, "0")}/${date.getFullYear()}`;
+    }
   }
 
   static randomTime() {
@@ -149,9 +239,9 @@ class DataLoader {
   async initializeLargeData() {
     if (this.allData) return this.allData;
 
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const baseData = DataLoader.decodeData();
+    return new Promise(async (resolve) => {
+      setTimeout(async () => {
+        const baseData = await DataLoader.decodeData();
         this.allData = DataLoader.generateLargeDataset(baseData, 100000);
         console.log(`初始化完成，共 ${this.allData.length} 条数据`);
         resolve(this.allData);
@@ -161,7 +251,7 @@ class DataLoader {
 
   // 分页获取数据
   async getPageData(page = 1, pageSize = 50, filters = {}) {
-    if (this.isLoading) return [];
+    if (this.isLoading) return { data: [], pagination: {} };
 
     this.isLoading = true;
 
@@ -192,7 +282,7 @@ class DataLoader {
             hasPrev: page > 1,
           },
         });
-      }, 200); // 减少延迟
+      }, 200);
     });
   }
 
@@ -245,13 +335,13 @@ class DataLoader {
       0
     );
 
-    // 计算平均评分（将星号转换为数字）
+    // 计算平均评分
     const allRatings = filteredData
       .flatMap((order) => [
-        this.ratingToNumber(order.taste_rating),
-        this.ratingToNumber(order.delivery_speed_rating),
-        this.ratingToNumber(order.environment_rating),
-        this.ratingToNumber(order.service_rating),
+        order.taste_rating,
+        order.delivery_speed_rating,
+        order.environment_rating,
+        order.service_rating,
       ])
       .filter((rating) => rating !== null);
 
@@ -272,12 +362,6 @@ class DataLoader {
       avgRating,
       deliveryRatio,
     };
-  }
-
-  // 将星号评分转换为数字
-  ratingToNumber(rating) {
-    if (!rating || rating === "") return null;
-    return (rating.match(/⭐/g) || []).length;
   }
 }
 
