@@ -90,16 +90,10 @@ class RestaurantDashboard {
           order.order_type
         }</span></td>
                 <td>${order.customer_id}</td>
-                <td class="rating">${this.formatRating(order.taste_rating)}</td>
-                <td class="rating">${this.formatRating(
-                  order.delivery_speed_rating
-                )}</td>
-                <td class="rating">${this.formatRating(
-                  order.environment_rating
-                )}</td>
-                <td class="rating">${this.formatRating(
-                  order.service_rating
-                )}</td>
+                <td class="rating">${order.taste_rating || "-"}</td>
+                <td class="rating">${order.delivery_speed_rating || "-"}</td>
+                <td class="rating">${order.environment_rating || "-"}</td>
+                <td class="rating">${order.service_rating || "-"}</td>
             </tr>
         `
       )
