@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>美味餐厅 - 订单管理系统</title>
+    <link rel="stylesheet" href="css/style.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  </head>
+  <body>
+    <div class="container">
+      <!-- 头部 -->
+      <header class="header">
+        <h1>🍜 餐厅订单管理系统</h1>
+        <div class="user-info">
+          <span>管理员 | </span>
+          <button id="refresh-btn">刷新数据</button>
+          <!-- <button id="export-btn">导出数据</button> -->
+        </div>
+      </header>
+
+      <!-- 统计卡片 -->
+      <div class="stats-cards">
+        <div class="card">
+          <h3>总订单数</h3>
+          <p id="total-orders">0</p>
+        </div>
+        <div class="card">
+          <h3>总收入</h3>
+          <p id="total-revenue">¥0</p>
+        </div>
+      </div>
+
+      <!-- 筛选控件 -->
+      <div class="filters">
+        <select id="order-type-filter">
+          <option value="">所有订单类型</option>
+          <option value="外卖">外卖</option>
+          <option value="堂食">堂食</option>
+        </select>
+        <select id="item-type-filter">
+          <option value="">所有菜品类型</option>
+          <option value="主食">主食</option>
+          <option value="小吃">小吃</option>
+          <option value="汤类">汤类</option>
+        </select>
+        <input
+          type="text"
+          id="search-input"
+          placeholder="搜索菜品或客户ID..."
+        />
+        <button id="reset-filters">重置筛选</button>
+      </div>
+
+      <!-- 图表区域 -->
+      <div class="charts">
+        <div class="chart-container">
+          <canvas id="salesChart"></canvas>
+        </div>
+        <div class="chart-container">
+          <canvas id="ratingChart"></canvas>
+        </div>
+      </div>
+
+      <!-- 数据表格 -->
+      <div class="table-container">
+        <div class="table-header">
+          <span>订单数据 (共 <span id="record-count">0</span> 条记录)</span>
+          <div class="table-actions">
+            <button id="prev-page" disabled>上一页</button>
+            <span id="page-info">第 1 页</span>
+            <button id="next-page" disabled>下一页</button>
+          </div>
+        </div>
+        <table id="orders-table" class="data-table">
+          <thead>
+            <tr>
+              <th>订单ID</th>
+              <th>日期</th>
+              <th>时间</th>
+              <th>菜品名称</th>
+              <th>类型</th>
+              <th>金额</th>
+              <th>订单类型</th>
+              <th>客户ID</th>
+              <th>口味评分</th>
+              <th>配送评分</th>
+              <th>环境评分</th>
+              <th>服务评分</th>
+            </tr>
+          </thead>
+          <tbody id="orders-tbody">
+            <tr>
+              <td colspan="12" class="loading">数据加载中...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 加密的数据放在这里 -->
+    <script src="js/data-loader.js"></script>
+    <script src="js/app.js"></script>
+  </body>
+</html>
